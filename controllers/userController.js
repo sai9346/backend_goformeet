@@ -1,108 +1,103 @@
-const User = require('../models/User');
+const User = require('../models/user'); // Ensure this path is correct
 const ApiFeatures = require('../utils/apiFeatures');
 
-// Get all users
-exports.getUsers = async (req, res, next) => {
+// Create a new user
+exports.createUser = async (req, res) => {
   try {
+    const user = await User.create(req.body);
+    res.status(201).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Get all users with filtering, sorting, and pagination
+exports.getUsers = async (req, res) => {
+  try {
+    // Initialize ApiFeatures instance
     const apiFeature = new ApiFeatures(User.find(), req.query)
       .search()
       .filter()
       .sort()
       .paginate();
 
+    // Execute query
     const users = await apiFeature.query;
     const totalUsers = await User.countDocuments();
 
     res.status(200).json({
       success: true,
       users,
-      totalUsers,
+      totalPages: Math.ceil(totalUsers / apiFeature.limit),
       currentPage: apiFeature.page,
-      totalPages: Math.ceil(totalUsers / apiFeature.limit)
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-// Create new user
-exports.createUser = async (req, res, next) => {
+// Update a user by ID
+exports.updateUser = async (req, res) => {
   try {
-    const user = await User.create(req.body);
-    res.status(201).json({
-      success: true,
-      user
+    const user = await User.findByIdAndUpdate(req.params.id, req.body, {
+      new: true, // Return the updated document
+      runValidators: true, // Run validation checks
     });
-  } catch (error) {
-    next(error);
-  }
-};
 
-// Get single user
-exports.getUserDetails = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'User not found',
       });
     }
+
     res.status(200).json({
       success: true,
-      user
+      user,
     });
   } catch (error) {
-    next(error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-// Update user
-exports.updateUser = async (req, res, next) => {
+// Delete a user by ID
+exports.deleteUser = async (req, res) => {
   try {
-    let user = await User.findById(req.params.id);
+    const user = await User.findByIdAndDelete(req.params.id);
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'User not found',
       });
     }
-    user = await User.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-      useFindAndModify: false
-    });
+
     res.status(200).json({
       success: true,
-      user
+      message: 'User deleted successfully',
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-// Delete user
-exports.deleteUser = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-    await user.remove();
-    res.status(200).json({
-      success: true,
-      message: 'User deleted successfully'
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Add dummy users
-exports.addDummyUsers = async (req, res, next) => {
+// Add dummy users to the database
+exports.addDummyUsers = async (req, res) => {
   try {
     const dummyUsers = [
       { name: 'Aarav Gupta', age: 28, location: 'Delhi', profession: 'Software Engineer' },
@@ -117,12 +112,16 @@ exports.addDummyUsers = async (req, res, next) => {
       { name: 'Nidhi Chauhan', age: 28, location: 'Lucknow', profession: 'DevOps Engineer' }
     ];
 
-    await User.insertMany(dummyUsers);
+    const users = await User.insertMany(dummyUsers);
+
     res.status(201).json({
       success: true,
-      message: 'Dummy users added successfully'
+      users,
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
