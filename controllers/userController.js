@@ -1,4 +1,4 @@
-const User = require('../models/user'); // Ensure this path is correct
+const User = require('../models/User'); // Ensure this path is correct
 const ApiFeatures = require('../utils/apiFeatures');
 
 // Create a new user
